@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chatronix - AI Bot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, button, input {
+            font-family: 'Roboto', sans-serif;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+        }
+        .toggle-label {
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <section class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <img src="/assets/logo.png" alt="Chatronix logo" class="mx-auto d-block" />
+            
+                        <!-- Light/Dark Mode Toggle -->
+                        <div class="toggle-container position-absolute end-0 me-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+                            </div>
+                            
+                        </div>
+                    </div>
+                    <div class="card-body" style="height: 65vh; overflow: auto;">
+                        <div class="messageHistory">
+                            <!-- Chat messages will be appended here -->
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="input-group">
+                            <input type="text" class="form-control message" placeholder="Type your message">
+                            <button class="btn btn-primary sendMessage">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Include Bootstrap JS and its dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    
+    <script type="module">
+        window.addEventListener('load', (event) => {
+            const inputField = document.querySelector(".message");
+            const sendMessageButton = document.querySelector(".sendMessage");
+            const chatBox = document.querySelector(".messageHistory");  // Select the chat history box
+    
+            function sendMessage() {
+                const message = inputField.value;  // Get the user input
+    
+                if (message.trim() === '') {
+                    console.error("No message to send");
+                    return; // Don't proceed further if there's no message
+                }
+    
+                // Display the user's message in the chat history
+                const userMsgTemplate = `<div class="alert alert-success" role="alert">You: ${message}</div>`;
+                chatBox.innerHTML += userMsgTemplate;
+    
+                // Add loading state to the button
+                sendMessageButton.classList.add('disabled');
+    
+                const payload = JSON.stringify({ "message": message });
+                inputField.value = "";  // Clear the input field
+    
+                fetch('requestmanager.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: payload,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Handle the response data here
+                    if (data && data.responseMessage) {
+                        // Display the chatbot's response in the chat history
+                        const botMsgTemplate = `<div class="alert alert-info" role="alert">Chatbot: ${data.responseMessage}</div>`;
+                        chatBox.innerHTML += botMsgTemplate;
+                    } else if (data && data.error) {
+                        // Display any error returned from the backend
+                        const errorMsgTemplate = `<div class="alert alert-danger" role="alert">Error: ${data.error}</div>`;
+                        chatBox.innerHTML += errorMsgTemplate;
+                        console.error('Backend error:', data.error);
+                    } else {
+                        // Handle any other unexpected issues
+                        const errorMsgTemplate = `<div class="alert alert-danger" role="alert">Unexpected response: ${JSON.stringify(data)}</div>`;
+                        chatBox.innerHTML += errorMsgTemplate;
+                        console.error('Received an unexpected response or no response:', data);
+                    }
+                    // Scroll the chat history to the bottom
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    // Remove loading state from the button
+                    sendMessageButton.classList.remove('disabled');
+                });
+            }
+    
+            // Event listener for the Send button click
+            sendMessageButton.addEventListener('click', sendMessage);
+    
+            // Event listener for pressing the Enter key
+            inputField.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();  // Prevent the default action (form submission)
+                    sendMessage();  // Call the same function that handles sending the message
+                }
+            });
+    
+            // Light/Dark Mode Toggle Script
+            document.getElementById('darkModeSwitch').addEventListener('change', function(event){
+                if(event.target.checked){
+                    document.body.classList.add('bg-dark', 'text-white');
+                    document.querySelectorAll('.card').forEach(card => card.classList.add('bg-dark', 'text-white'));
+                } else {
+                    document.body.classList.remove('bg-dark', 'text-white');
+                    document.querySelectorAll('.card').forEach(card => card.classList.remove('bg-dark', 'text-white'));
+                }
+            });
+        });
+    </script>
+    
+</body>
+</html>
